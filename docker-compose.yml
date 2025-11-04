@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
+    command: sh -c "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
     ports:
       # Expose app port 8000 to the host
       - "8001:8000"
