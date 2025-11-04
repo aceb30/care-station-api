@@ -12,6 +12,7 @@ services:
     volumes:
       # Sync our local code into the container for live-editing
       - .:/var/www/html
+      - /var/www/html/vendor
     networks:
       - app-network
     depends_on:
