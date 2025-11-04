@@ -1,0 +1,8 @@
+# Ignore the vendor folder
+vendor/
+
+# Ignore node modules
+node_modules/
+
+# Ignore .env files
+.env

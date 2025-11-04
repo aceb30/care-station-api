@@ -1,0 +1,76 @@
+services:
+  # --- Laravel App (The "API") ---
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      # Expose app port 8000 to the host
+      - "8001:8000"
+    volumes:
+      # Sync our local code into the container for live-editing
+      - .:/var/www/html
+    networks:
+      - app-network
+    depends_on:
+      - db
+      - file_storage
+
+  # --- PostgreSQL Database ---
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: myappdb
+    # NO ports here. This is now private.
+    volumes:
+      - ./db-init:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # --- MinIO File Storage ---
+  file_storage:
+    image: minio/minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    ports:
+      # ONLY expose the web console (9001) for admin
+      - "9001:9001" 
+    volumes:
+      - minio_data:/data
+      - ./minio-init:/minio-init
+    entrypoint: ["/minio-init/start-minio.sh"]
+    networks:
+      - app-network
+
+  # --- pgAdmin Web GUI ---
+  pgadmin:
+    image: dpage/pgadmin4
+    platform: linux/amd64
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: adminpassword
+    ports:
+      # Expose pgAdmin's web console
+      - "8081:80"
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+# --- Define the private network ---
+networks:
+  app-network:
+    driver: bridge
+
+# --- Define the persistent volumes ---
+volumes:
+  postgres_data:
+  minio_data:
