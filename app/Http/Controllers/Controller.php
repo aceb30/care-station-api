@@ -2,7 +2,87 @@
 
 namespace App\Http\Controllers;
 
-abstract class Controller
+
+
+// Todo código será comentado hasta que tenga la menor idea de lo que estoy haciendo
+// Si quiere sacar el comentario, eliminar el /* del principio y * / al final del proyecto
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+
+// Controlador de autentificación. 
+// Servirá para registrar a un usuario a la BD, loggearlo, y cerrar sesión
+class AuthController extends Controller
 {
-    //
+    public function register(Request $request) {
+        // Validación de los datos. Requerimos una revisión
+        // por parte del equipo de BD
+
+        $request->validate([
+            'name' => 'required|string',
+            'email' => 'required|string',
+            'password' => 'required|string',
+        ], [
+            'required' => 'El campo :attribute es obligatorio.'
+        ]);
+
+        // Creación del usuario
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        // Token de Sactum
+        $token = $user->createToken('API Token')->plainTextToken;
+
+        // Status de respuesta
+        return response()->json([
+            'user' => $user,
+            'token' => $token,
+            'message' => 'Registro exitoso'
+        ], 201);
+
+    }
+
+    public function login(Request $request) {
+        // Validación de datos, una vez mas, consultar a BD
+        $request->validate([
+            'email' => 'required|string',
+            'password' => 'required|string',
+        ], [
+            'required' => 'El campo :attribute es obligatorio.'
+        ]);
+
+        // Revisión de credenciales
+        if (!Auth::attempt($request->only('email', 'password'))) {
+            return response()->json([
+                'message' => 'Credenciales inválidas'
+            ], 401);
+        }
+
+        // Obtener usuario
+        $user = Auth::user();
+
+        // Generación de un nuevo token para el login actual
+        $user->tokens()->delete();
+        $token = $user->createToken('API Token')->plainTextToken;
+
+        // Status de respuesta
+        return response()->json([
+            'user' => $user,
+            'token' => $token,
+            'message' => 'Login exitoso'
+        ]);
+    }
+
+    public function logout(Request $request) {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Sesión cerrada'
+        ]);
+    }
 }
