@@ -6,6 +6,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -13,14 +15,22 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * The primary key associated with the table.
+     */
+    protected $primaryKey = 'user_id'; // This is correct!
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'names',        // <-- Fixed from 'name'
+        'surnames',     // <-- Added
         'email',
         'password',
+        'cellphone',    // <-- Added
+        'photo_url',    // <-- Added
     ];
 
     /**
@@ -30,7 +40,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
-        'remember_token',
+        // 'remember_token', // <-- Removed (column doesn't exist)
     ];
 
     /**
@@ -41,8 +51,43 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
+            // 'email_verified_at' => 'datetime', // <-- Removed (column doesn't exist)
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * The care groups this user is a member of.
+     */
+    public function careGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            CareGroup::class,      // The model we are joining to
+            'group_members',       // The name of our pivot table
+            'user_id',             // The foreign key on the pivot table for *this* model
+            'care_group_id'        // The foreign key on the pivot table for the *other* model
+        )->using(GroupMember::class); // Tell Laravel to use our custom Pivot model
+    }
+
+    /**
+     * The tasks that are assigned to this user.
+     * This defines the many-to-many relationship via 'task_assignments'.
+     */
+    public function assignedTasks(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Task::class,
+            'task_assignments', // The pivot table
+            'user_id',          // The foreign key for this model
+            'task_id'           // The foreign key for the Task model
+        );
+    }
+
+    /**
+     * Get the notes authored by this user.
+     */
+    public function notes(): HasMany
+    {
+        return $this->hasMany(Note::class, 'author_id', 'user_id');
     }
 }
