@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Auth;
 
 
 
 // Todo código será comentado hasta que tenga la menor idea de lo que estoy haciendo
 // Si quiere sacar el comentario, eliminar el /* del principio y * / al final del proyecto
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -21,18 +22,24 @@ class AuthController extends Controller
         // por parte del equipo de BD
 
         $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|string',
-            'password' => 'required|string',
+            'names' => 'required|string|max:255',
+            'surnames' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'cellphone' => 'nullable|string|max:20',
         ], [
-            'required' => 'El campo :attribute es obligatorio.'
+            'required' => 'El campo :attribute es obligatorio.',
+            'unique' => 'Este correo ya está registrado.',
+            'confirmed' => 'La confirmación de la contraseña no coincide',
         ]);
 
         // Creación del usuario
         $user = User::create([
-            'name' => $request->name,
+            'names' => $request->names,
+            'surnames' => $request->surnames,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'cellphone' => $request->cellphone ?? null,
         ]);
 
         // Token de Sactum
