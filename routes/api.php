@@ -3,8 +3,11 @@
 
 //Todo código será comentado hasta que tenga una mínima ídea de lo que estoy haciendo
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CareGroupController;
+use App\Http\Controllers\Api\PrescriptionController;
 
 
 // Rutas públicas
@@ -21,5 +24,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request){
         return $request->user();
     })->name('user');
+
+    
+    // Rutas para los Grupos de Cuidado
+    Route::apiResource('care-groups', CareGroupController::class);
+
+    // GET /api/care-groups/{careGroup}/tasks
+    Route::apiResource('care-groups.tasks', TaskController::class)->scoped();
+
+    // GET /api/patients/{patient}/prescriptions
+    Route::apiResource('patients.prescriptions', PrescriptionController::class)->scoped()->shallow();
 });
 
