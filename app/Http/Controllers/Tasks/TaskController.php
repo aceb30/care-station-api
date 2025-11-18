@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Log;
 
 class TaskController extends Controller{
+
   // All tasks assigned to a care group
   public function readTasks(Request $request){
     $validated = $request->validate([
@@ -18,7 +19,22 @@ class TaskController extends Controller{
       'required' => 'El campo :attribute es obligatorio.',
     ]);
 
-    $tasks = Task::where('care_group_id', $validated['care_group_id'])->get();
+    $tasks = Task::where('care_group_id', $validated['care_group_id'])
+                  ->with(['assignedUsers:user_id,names,surnames']) 
+                  ->get();
+
+    $tasks->transform(function ($task) {
+      // Create a string like "Ana Perez" or "Ana Perez, Jorge Silva"
+      $names = $task->assignedUsers->map(function ($user) {
+          return $user->names . ' ' . $user->surnames;
+      })->join(', ');
+
+      $task->assigned_to = $names ?: 'Sin asignar';
+
+      unset($task->assignedUsers); 
+
+      return $task;
+    });
 
     return response()->json($tasks);
   }
@@ -33,7 +49,21 @@ class TaskController extends Controller{
 
     $tasks = Task::where('care_group_id', $validated['care_group_id'])
                   ->where('begin_time', '>=', now('America/Santiago')->startOfDay()->setTimezone('UTC'))
+                  ->with(['assignedUsers:user_id,names,surnames']) 
                   ->get();
+
+    $tasks->transform(function ($task) {
+      // Create a string like "Ana Perez" or "Ana Perez, Jorge Silva"
+      $names = $task->assignedUsers->map(function ($user) {
+          return $user->names . ' ' . $user->surnames;
+      })->join(', ');
+
+      $task->assigned_to = $names ?: 'Sin asignar';
+
+      unset($task->assignedUsers); 
+
+      return $task;
+    });
 
     return response()->json($tasks);
   }
