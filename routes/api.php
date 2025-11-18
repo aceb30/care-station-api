@@ -1,11 +1,16 @@
 <?php
 
 
-//Todo código será comentado hasta que tenga una mínima ídea de lo que estoy haciendo
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Tasks\UserController;
+
+
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok', 'message' => 'Backend is running!']);
+});
+
 
 Route::get('/user/{id}/photo', [UserController::class, 'getPhoto']);
 
