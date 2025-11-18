@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Tasks\UserController;
 
-Route::get('/user/{id}/photo', [UserController::class, 'getPhoto']);
+//Route::get('/user/{id}/photo', [UserController::class, 'getPhoto']);
+
+Route::middleware('auth:sanctum')->get('/user/{user}/photo', [UserController::class, 'getPhoto']);
 
 // Rutas públicas
 Route::post('/register', [AuthController::class, 'register'])->name('register');
