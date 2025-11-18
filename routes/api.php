@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Tasks\UserController;
+use App\Http\Controllers\Tasks\TaskController;
 
 
 Route::get('/health', function () {
@@ -32,3 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
     })->name('user');
 });
 
+// MOVER DENTRO DEL MIDDLEWARE DESPUÉS
+Route::post('/readTasks', [TaskController::class, 'readTasks'])->name('readTasks');
+Route::post('/readUpcomingTasks', [TaskController::class, 'readUpcomingTasks'])->name('readUpcomingTasks');
+Route::post('/createTask', [TaskController::class, 'createTask'])->name('createTask');
+Route::post('/deleteTask', [TaskController::class, 'deleteTask'])->name('deleteTask');
+Route::post('/updateTask', [TaskController::class, 'updateTask'])->name('updateTask');
