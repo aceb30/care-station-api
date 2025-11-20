@@ -18,9 +18,7 @@ use App\Models\User;
 class AuthController extends Controller
 {
     public function register(Request $request) {
-        // Validación de los datos. Requerimos una revisión
-        // por parte del equipo de BD
-
+        
         $request->validate([
             'names' => 'required|string|max:255',
             'surnames' => 'required|string|max:255',
@@ -33,7 +31,6 @@ class AuthController extends Controller
             'confirmed' => 'La confirmación de la contraseña no coincide',
         ]);
 
-        // Creación del usuario
         $user = User::create([
             'names' => $request->names,
             'surnames' => $request->surnames,
@@ -42,16 +39,13 @@ class AuthController extends Controller
             'cellphone' => $request->cellphone ?? null,
         ]);
 
-        // Token de Sactum
         $token = $user->createToken('API Token')->plainTextToken;
 
-        // Status de respuesta
         return response()->json([
             'user' => $user,
             'token' => $token,
             'message' => 'Registro exitoso'
         ], 201);
-
     }
 
     public function login(Request $request) {
