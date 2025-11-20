@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Tasks\UserController;
 use App\Http\Controllers\Tasks\TaskController;
+use App\Http\Controllers\CareGroupController;
 
 
 Route::get('/health', function () {
@@ -27,10 +28,12 @@ Route::middleware('auth:sanctum')->group(function () {
     //Cerrar sesión
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    //Dejamos este para tener de ejemplo
     Route::get('/user', function (Request $request){
         return $request->user();
     })->name('user');
+
+
+    Route::get('/my-groups', [CareGroupController::class, 'getMyGroups']);
 });
 
 // MOVER DENTRO DEL MIDDLEWARE DESPUÉS
