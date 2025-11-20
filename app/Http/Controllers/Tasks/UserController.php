@@ -76,45 +76,36 @@ class UserController extends Controller
 
         return response()->file($path, ['Content-Type' => $mime]);
     }
-}
 
-/*
-class UserController extends Controller
-{
-
-    public function getPhoto($id)
-{
-    $user = \App\Models\User::find($id);
-    
-    Log::info('getPhoto reached');
-
-    if (!$user) {
-        return response()->json(['error' => 'User not found'], 404);
-    }
-
-    // Ajusta este nombre de campo según tu base de datos
-    if (!$user->photo_url || !\Storage::disk('public')->exists($user->photo_url)) {
-        return response()->json(['error' => 'Photo not found'], 404);
-    }
-
-    $path = \Storage::disk('public')->path($user->photo_url);
-    $mime = \File::mimeType($path);
-
-    return response()->file($path, ['Content-Type' => $mime]);
-}
-
- public function index(Request $request)
+    public function updatePhoto(Request $request, User $user)
     {
-        $perPage = (int) $request->query('per_page', 0);
-
-        $query = User::select('id', 'name', 'email', 'photo_path', 'created_at')->orderBy('id');
-
-        if ($perPage > 0) {
-            return response()->json($query->paginate($perPage), 200);
+        $auth = $request->user();
+        if (!$auth) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
-        return response()->json(['data' => $query->get()], 200);
-    }
+        if ($auth->user_id !== $user->user_id) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
 
+        $data = $request->validate([
+            'photo_url' => ['required', 'string', 'max:255'],
+        ]);
+
+        $url = trim($data['photo_url']);
+
+        // Normalizar: añadir https si falta (si parece dominio)
+        if (!preg_match('#^https?://#i', $url) && strpos($url, '.') !== false) {
+            $url = 'https://' . $url;
+        }
+
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return response()->json(['error' => 'Invalid URL'], 422);
+        }
+
+        $user->photo_url = $url;
+        $user->save();
+
+        return response()->json(['message' => 'Photo updated', 'photo_url' => $user->photo_url], 200);
     }
-*/
+}

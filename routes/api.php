@@ -13,9 +13,10 @@ Route::get('/health', function () {
 });
 
 
-//Route::get('/user/{id}/photo', [UserController::class, 'getPhoto']);
 
 Route::middleware('auth:sanctum')->get('/user/{user}/photo', [UserController::class, 'getPhoto']);
+
+Route::patch('/user/{user}/photo-test', [UserController::class, 'updatePhoto']);
 
 // Rutas públicas
 Route::post('/register', [AuthController::class, 'register'])->name('register');
@@ -33,6 +34,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request){
         return $request->user();
     })->name('user');
+
+    // Editar foto de perfil (solo usuario autenticado puede editar su propia foto)
+    //Route::patch('/user/{user}/photo', [UserController::class, 'updatePhoto'])->name('user.updatePhoto');
 });
 
 // MOVER DENTRO DEL MIDDLEWARE DESPUÉS
