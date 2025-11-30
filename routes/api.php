@@ -4,9 +4,12 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Medicine\ExamController;
 use App\Http\Controllers\Tasks\UserController;
 use App\Http\Controllers\Tasks\TaskController;
+use App\Http\Controllers\CareGroupController;
 
+use App\Http\Controllers\Medicine\MedicationController;
 
 Route::get('/health', function () {
     return response()->json(['status' => 'ok', 'message' => 'Backend is running!']);
@@ -30,13 +33,22 @@ Route::middleware('auth:sanctum')->group(function () {
     //Cerrar sesión
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    //Dejamos este para tener de ejemplo
     Route::get('/user', function (Request $request){
         return $request->user();
     })->name('user');
 
     // Editar foto de perfil (solo usuario autenticado puede editar su propia foto)
     //Route::patch('/user/{user}/photo', [UserController::class, 'updatePhoto'])->name('user.updatePhoto');
+
+    Route::get('/my-groups', [CareGroupController::class, 'getMyGroups']);
+    // '/exams' y lo que le sigue. Si la vista es otra, cambiar el nombre.
+    Route::apiResource('exams', ExamController::class);
+
+    // '/medications' y lo que le sigue. Si la vista es otra, cambiar el nombre.
+    Route::apiResource('medications', MedicationController::class);
+
+    // '/prescriptions' y lo que le sigue. Si la vista es otra, cambiar el nombre.
+    Route::apiResource('prescriptions', MedicationController::class);
 });
 
 // MOVER DENTRO DEL MIDDLEWARE DESPUÉS
