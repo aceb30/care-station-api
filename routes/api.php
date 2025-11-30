@@ -4,10 +4,12 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Medicine\ExamController;
 use App\Http\Controllers\Tasks\UserController;
 use App\Http\Controllers\Tasks\TaskController;
 use App\Http\Controllers\CareGroupController;
 
+use App\Http\Controllers\Medicine\MedicationController;
 
 Route::get('/health', function () {
     return response()->json(['status' => 'ok', 'message' => 'Backend is running!']);
@@ -34,6 +36,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::get('/my-groups', [CareGroupController::class, 'getMyGroups']);
+    // '/exams' y lo que le sigue. Si la vista es otra, cambiar el nombre.
+    Route::apiResource('exams', ExamController::class);
+
+    // '/medications' y lo que le sigue. Si la vista es otra, cambiar el nombre.
+    Route::apiResource('medications', MedicationController::class);
+
+    // '/prescriptions' y lo que le sigue. Si la vista es otra, cambiar el nombre.
+    Route::apiResource('prescriptions', MedicationController::class);
 });
 
 // MOVER DENTRO DEL MIDDLEWARE DESPUÉS

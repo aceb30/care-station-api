@@ -7,11 +7,12 @@ namespace App\Http\Controllers\Auth;
 // Todo código será comentado hasta que tenga la menor idea de lo que estoy haciendo
 // Si quiere sacar el comentario, eliminar el /* del principio y * / al final del proyecto
 
+use App\Models\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
+
 
 // Controlador de autentificación. 
 // Servirá para registrar a un usuario a la BD, loggearlo, y cerrar sesión
