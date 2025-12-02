@@ -17,9 +17,9 @@ Route::get('/health', function () {
 
 
 
-Route::middleware('auth:sanctum')->get('/user/{user}/photo', [UserController::class, 'getPhoto']);
+//Route::middleware('auth:sanctum')->get('/user/{user}/photo', [UserController::class, 'getPhoto']);
 
-Route::patch('/user/{user}/photo-test', [UserController::class, 'updatePhoto']);
+//Route::patch('/user/{user}/photo-test', [UserController::class, 'updatePhoto']);
 
 // Rutas públicas
 Route::post('/register', [AuthController::class, 'register'])->name('register');
@@ -39,6 +39,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Editar foto de perfil (solo usuario autenticado puede editar su propia foto)
     //Route::patch('/user/{user}/photo', [UserController::class, 'updatePhoto'])->name('user.updatePhoto');
+
+    Route::apiResource('patients', \App\Http\Controllers\Tasks\PatientController::class);
+
 
     Route::get('/my-groups', [CareGroupController::class, 'getMyGroups']);
     // '/exams' y lo que le sigue. Si la vista es otra, cambiar el nombre.
