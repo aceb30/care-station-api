@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Tasks;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Patient;
+use Illuminate\Support\Facades\Log;
+
 
 class PatientController extends Controller
 {
@@ -33,6 +35,7 @@ class PatientController extends Controller
 
         $patient = Patient::create($data);
 
+        Log::info('Imprimiendo paciente guardado ', $patient->toArray());
         return response()->json($patient, 201);
     }
 

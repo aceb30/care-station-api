@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\CareGroup;
 use App\Models\Patient;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
 
 class CareGroupController extends Controller
 {
@@ -69,12 +71,12 @@ class CareGroupController extends Controller
             $group->members()->attach($user->user_id);
 
             DB::commit();
-
             return response()->json([
                 'message' => 'Grupo creado correctamente',
                 'group'   => $group,
                 'patient' => $patient,
             ], 201);
+            Log::info('Grupo creado correctamente', $group->toArray());
 
         } catch (\Exception $e) {
             DB::rollBack();
