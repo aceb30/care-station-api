@@ -92,26 +92,44 @@ class CareGroupController extends Controller
         }
     }
 
-    public function generateInvitationCode(Request $request, $careGroupId)
+    public function generateInvitation(Request $request, $id)
     {
-        $careGroup = CareGroup::findOrFail($careGroupId);
+        $careGroup = CareGroup::find($id);
+
+        if (!$careGroup) {
+            return response()->json(['message' => 'Grupo no encontrado'], 404);
+        }
 
         // Validar que el usuario actual sea el admin del grupo
+        // Nota: Asegúrate que tu tabla care_groups tenga la columna 'admin_id'
         if ($careGroup->admin_id !== Auth::id()) {
             return response()->json(['message' => 'No autorizado. Solo el administrador puede crear invitaciones.'], 403);
         }
 
-        // Generar un código único aleatorio 
+        // Buscar si ya existe un código vigente para no llenar la BD
+        $existingInvite = GroupInvitation::where('care_group_id', $id)
+            ->where('expires_at', '>', Carbon::now())
+            ->first();
+
+        if ($existingInvite) {
+            return response()->json([
+                'message' => 'Código existente recuperado',
+                'code' => $existingInvite->code,
+                'expires_at' => $existingInvite->expires_at
+            ]);
+        }
+
+        // Generar un código único aleatorio (6 caracteres mayúsculas/números)
         $code = strtoupper(Str::random(6));
 
-        // Asegurarse de que no exista ya 
+        // Asegurarse de que no exista ya (loop simple de seguridad)
         while (GroupInvitation::where('code', $code)->exists()) {
             $code = strtoupper(Str::random(6));
         }
 
         // Crear la invitación (válida por 48 horas)
         $invitation = GroupInvitation::create([
-            'care_group_id' => $careGroupId,
+            'care_group_id' => $id,
             'code' => $code,
             'expires_at' => Carbon::now()->addHours(48),
         ]);
@@ -125,14 +143,19 @@ class CareGroupController extends Controller
 
     public function joinByCode(Request $request)
     {
+        // Validar el input
         $request->validate([
-            'code' => 'required|string|exists:group_invitations,code'
+            'code' => 'required|string'
         ]);
 
-        $code = $request->input('code');
+        $code = strtoupper($request->input('code'));
 
         // Buscar la invitación
         $invitation = GroupInvitation::where('code', $code)->first();
+
+        if (!$invitation) {
+            return response()->json(['message' => 'Código inválido.'], 404);
+        }
 
         // Verificar si ha expirado
         if (Carbon::now()->greaterThan($invitation->expires_at)) {

@@ -59,6 +59,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Restful endpoints for tasks
     Route::apiResource('tasks', TaskController::class);
 
+    // Ruta para generar invitación (Solo Admin)
+    Route::post('/care-groups/{id}/invitation', [CareGroupController::class, 'generateInvitation']);
+
+    // Ruta para unirse por código
+    Route::post('/care-groups/join-by-code', [CareGroupController::class, 'joinByCode']);
+    
+    // Ruta para unirse al grupo (Cualquier usuario)
+    Route::post('/join-group', [CareGroupController::class, 'joinByCode']);
+    
     // Custom endpoints for tasks
     Route::get('/tasks/by-group/{care_group_id}', [TaskController::class, 'indexByGroup']);
     Route::get('/tasks/upcoming-by-group/{care_group_id}', [TaskController::class, 'upcomingByGroup']);
