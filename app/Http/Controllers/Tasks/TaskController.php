@@ -6,78 +6,34 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Task;
+use App\Models\CareGroup;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Log;
 
 class TaskController extends Controller{
+  // RESTFUL STYLE ENDPOINTS
 
-  // All tasks assigned to a care group
-  public function readTasks(Request $request){
-    $validated = $request->validate([
-      'care_group_id' => 'required|integer'
-    ], [
-      'required' => 'El campo :attribute es obligatorio.',
-    ]);
+  // EDIT TO INCLUDE MORE INFORMATION ABOUT A SPECIFIC TASK (!!!!!)
+  public function show(string $id){
+    $task = Task::with(['assignedUsers:user_id,names,surnames,email'])->find($id);
 
-    $tasks = Task::where('care_group_id', $validated['care_group_id'])
-                  ->with(['assignedUsers:user_id,names,surnames']) 
-                  ->get();
+    if(!$task){
+      return response()->json(['message' => 'Tarea no encontrada'], 404);
+    }
 
-    $tasks->transform(function ($task) {
-      // Create a string like "Ana Perez" or "Ana Perez, Jorge Silva"
-      $names = $task->assignedUsers->map(function ($user) {
-          return $user->names . ' ' . $user->surnames;
-      })->join(', ');
-
-      $task->assigned_to = $names ?: 'Sin asignar';
-
-      unset($task->assignedUsers); 
-
-      return $task;
-    });
-
-    return response()->json($tasks);
+    return response()->json($task);
   }
 
-   // All upcoming tasks assigned to a care group
-  public function readUpcomingTasks(Request $request){
+  // Create a single task
+  public function store(Request $request){
     $validated = $request->validate([
-      'care_group_id' => 'required|integer'
-    ], [
-      'required' => 'El campo :attribute es obligatorio.',
-    ]);
-
-    $tasks = Task::where('care_group_id', $validated['care_group_id'])
-                  ->where('begin_time', '>=', now('America/Santiago')->startOfDay()->setTimezone('UTC'))
-                  ->with(['assignedUsers:user_id,names,surnames']) 
-                  ->get();
-
-    $tasks->transform(function ($task) {
-      // Create a string like "Ana Perez" or "Ana Perez, Jorge Silva"
-      $names = $task->assignedUsers->map(function ($user) {
-          return $user->names . ' ' . $user->surnames;
-      })->join(', ');
-
-      $task->assigned_to = $names ?: 'Sin asignar';
-
-      unset($task->assignedUsers); 
-
-      return $task;
-    });
-
-    return response()->json($tasks);
-  }
-
-  // Create single task
-  public function createTask(Request $request){
-    $validated = $request->validate([
-      'care_group_id' => 'required|integer',
+      'care_group_id' => 'required|exists:care_groups,id',
       'title' => 'required|string|max:255',
       'description' => 'nullable|string',
       'frequency' => 'required|string',
       'category' => 'nullable|string',
       'begin_time' => 'required|date',
-      'end_date' => 'nullable|date|after_or_equal:start_date'
+      'end_time' => 'nullable|date|after_or_equal:begin_time'
     ], [
       'required' => 'El campo :attribute es obligatorio.',
     ]);
@@ -100,39 +56,34 @@ class TaskController extends Controller{
   }
 
   // Delete single task
-  public function deleteTask(Request $request){
-    $validated = $request->validate([
-      'task_id' => 'required|integer',
-    ], [
-      'required' => 'El campo :attribute es obligatorio.',      
-    ]);
+  public function destroy(string $id){
+    $task = Task::find($id);
 
-    if(Task::where('task_id', $validated['task_id'])->exists()){
-      $task = Task::find($validated['task_id']);
-      $task->delete();
+    if(!$task){
+      return response()->json(['message' => 'Tarea no encontrada'], 404);
+    }
 
-      return response()->json([
-        'message' => "Tarea eliminada"
-      ], 202);
-    }
-    else {
-      return response()->json([
-        'message' => "Tarea no encontrada"
-      ], 404);
-    }
+    $task->delete();
+
+    return response()->json(['message' => "Tarea eliminada"], 202);
   }
 
   // Update single task
-  public function updateTask(Request $request){
+  public function update(Request $request, string $id){
+    $task = Task::find($id);
+
+    if(!$task){
+      return response()->json(['message' => "Tarea no encontrada"], 404);
+    }
+
     $validated = $request->validate([
-      'task_id' => 'required|integer',
       'title' => 'sometimes|nullable|string|max:255',
       'description' => 'sometimes|nullable|string',
       'frequency' => 'sometimes|nullable|string',
       'category' => 'sometimes|nullable|string',
       'begin_time' => 'sometimes|nullable|date',
-      'end_time' => 'sometimes|nullable|date|after_or_equal:start_date',
-      'done' => 'sometimes|nullable|boolean'
+      'end_time' => 'sometimes|nullable|date|after_or_equal:begin_time',
+      'done' => 'sometimes|boolean'
     ], [
       'required' => 'El campo :attribute es obligatorio.', 
       'integer' => 'El campo :attribute debe ser un número entero.',
@@ -142,14 +93,6 @@ class TaskController extends Controller{
       'boolean' => 'El campo :attribute debe ser verdadero o falso.'
     ]);
 
-    $task = Task::find($validated['task_id']);
-
-    if(!$task){
-      return response()->json([
-        'message' => "Tarea no encontrada"
-      ], 404);
-    }
-
     $task->update(collect($validated)->except('task_id')->toArray());
 
     return response()->json([
@@ -158,4 +101,62 @@ class TaskController extends Controller{
     ], 202);
   }
 
+  // CUSTOM ENDPOINTS
+
+  // Read all tasks assigned to a care group
+  public function indexByGroup(string $care_group_id){
+    $care_group = CareGroup::find($care_group_id);
+
+    if(!$care_group){
+      return response()->json(['message' => 'No se encontró el grupo de cuidados indicado'], 404);
+    }
+
+    $tasks = Task::where('care_group_id', $care_group_id)
+                  ->with(['assignedUsers:user_id,names,surnames']) 
+                  ->get();
+
+    $tasks->transform(function ($task) {
+      // Create a string like "Ana Perez" or "Ana Perez, Jorge Silva"
+      $names = $task->assignedUsers->map(function ($user) {
+          return $user->names . ' ' . $user->surnames;
+      })->join(', ');
+
+      $task->assigned_to = $names ?: 'Sin asignar';
+
+      unset($task->assignedUsers); 
+
+      return $task;
+    });
+
+    return response()->json($tasks);
+  }
+
+  // All upcoming tasks assigned to a care group
+  public function upcomingByGroup(string $care_group_id){
+    $care_group = CareGroup::find($care_group_id);
+
+    if(!$care_group){
+      return response()->json(['message' => 'No se encontró el grupo de cuidados indicado'], 404);
+    }
+
+    $tasks = Task::where('care_group_id', $care_group_id)
+                  ->where('begin_time', '>=', today('America/Santiago')->utc())
+                  ->with(['assignedUsers:user_id,names,surnames']) 
+                  ->get();
+
+    $tasks->transform(function ($task) {
+      // Create a string like "Ana Perez" or "Ana Perez, Jorge Silva"
+      $names = $task->assignedUsers->map(function ($user) {
+          return $user->names . ' ' . $user->surnames;
+      })->join(', ');
+
+      $task->assigned_to = $names ?: 'Sin asignar';
+
+      unset($task->assignedUsers); 
+
+      return $task;
+    });
+
+    return response()->json($tasks);
+  }
 }

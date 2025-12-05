@@ -54,12 +54,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('medications', MedicationController::class);
 
     // '/prescriptions' y lo que le sigue. Si la vista es otra, cambiar el nombre.
-    Route::apiResource('prescriptions', MedicationController::class);
-});
+    Route::apiResource('prescriptions', PrescriptionController::class);
 
-// MOVER DENTRO DEL MIDDLEWARE DESPUÉS
-Route::post('/readTasks', [TaskController::class, 'readTasks'])->name('readTasks');
-Route::post('/readUpcomingTasks', [TaskController::class, 'readUpcomingTasks'])->name('readUpcomingTasks');
-Route::post('/createTask', [TaskController::class, 'createTask'])->name('createTask');
-Route::post('/deleteTask', [TaskController::class, 'deleteTask'])->name('deleteTask');
-Route::post('/updateTask', [TaskController::class, 'updateTask'])->name('updateTask');
+    // Restful endpoints for tasks
+    Route::apiResource('tasks', TaskController::class);
+
+    // Custom endpoints for tasks
+    Route::get('/tasks/by-group/{care_group_id}', [TaskController::class, 'indexByGroup']);
+    Route::get('/tasks/upcoming-by-group/{care_group_id}', [TaskController::class, 'upcomingByGroup']);
+
+});
