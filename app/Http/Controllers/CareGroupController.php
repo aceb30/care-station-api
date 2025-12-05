@@ -7,6 +7,11 @@ use App\Models\CareGroup;
 use App\Models\Patient;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\GroupInvitation;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use App\Models\GroupMember;
 
 
 class CareGroupController extends Controller
@@ -85,5 +90,76 @@ class CareGroupController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function generateInvitationCode(Request $request, $careGroupId)
+    {
+        $careGroup = CareGroup::findOrFail($careGroupId);
+
+        // Validar que el usuario actual sea el admin del grupo
+        if ($careGroup->admin_id !== Auth::id()) {
+            return response()->json(['message' => 'No autorizado. Solo el administrador puede crear invitaciones.'], 403);
+        }
+
+        // Generar un código único aleatorio 
+        $code = strtoupper(Str::random(6));
+
+        // Asegurarse de que no exista ya 
+        while (GroupInvitation::where('code', $code)->exists()) {
+            $code = strtoupper(Str::random(6));
+        }
+
+        // Crear la invitación (válida por 48 horas)
+        $invitation = GroupInvitation::create([
+            'care_group_id' => $careGroupId,
+            'code' => $code,
+            'expires_at' => Carbon::now()->addHours(48),
+        ]);
+
+        return response()->json([
+            'message' => 'Código generado exitosamente',
+            'code' => $invitation->code,
+            'expires_at' => $invitation->expires_at
+        ]);
+    }
+
+    public function joinByCode(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|exists:group_invitations,code'
+        ]);
+
+        $code = $request->input('code');
+
+        // Buscar la invitación
+        $invitation = GroupInvitation::where('code', $code)->first();
+
+        // Verificar si ha expirado
+        if (Carbon::now()->greaterThan($invitation->expires_at)) {
+            return response()->json(['message' => 'El código de invitación ha expirado.'], 400);
+        }
+
+        $user = Auth::user();
+        $groupId = $invitation->care_group_id;
+
+        // Verificar si el usuario ya es miembro de ese grupo
+        $isMember = GroupMember::where('user_id', $user->user_id)
+                            ->where('care_group_id', $groupId)
+                            ->exists();
+
+        if ($isMember) {
+            return response()->json(['message' => 'Ya eres miembro de este grupo.'], 409);
+        }
+
+        // Agregar al usuario al grupo
+        GroupMember::create([
+            'user_id' => $user->user_id,
+            'care_group_id' => $groupId
+        ]);
+
+        return response()->json([
+            'message' => 'Te has unido al grupo de cuidado exitosamente.',
+            'care_group_id' => $groupId
+        ]);
     }
 }
