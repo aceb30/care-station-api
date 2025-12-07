@@ -8,11 +8,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Sanctum\HasApiTokens;
+use App\Models\CareGroup;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The primary key associated with the table.
@@ -40,6 +42,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'remember_token',
         // 'remember_token', // <-- Removed (column doesn't exist)
     ];
 
@@ -52,6 +55,7 @@ class User extends Authenticatable
     {
         return [
             // 'email_verified_at' => 'datetime', // <-- Removed (column doesn't exist)
+            'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
