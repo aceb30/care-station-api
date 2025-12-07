@@ -8,6 +8,7 @@ use App\Http\Controllers\Medicine\ExamController;
 use App\Http\Controllers\Tasks\UserController;
 use App\Http\Controllers\Tasks\TaskController;
 use App\Http\Controllers\CareGroupController;
+use App\Http\Controllers\PatientController;
 
 use App\Http\Controllers\Medicine\MedicationController;
 
@@ -40,9 +41,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Editar foto de perfil (solo usuario autenticado puede editar su propia foto)
     //Route::patch('/user/{user}/photo', [UserController::class, 'updatePhoto'])->name('user.updatePhoto');
 
-    Route::apiResource('patients', \App\Http\Controllers\Tasks\PatientController::class);
+    Route::apiResource('patients', PatientController::class);
 
+    // Custom endpoints for patients
+    Route::get('/patients/by-group/{care_group_id}', [PatientController::class, 'showByGroup']);
 
+    
     Route::get('/my-groups', [CareGroupController::class, 'getMyGroups']);
 
     Route::post('/care-groups', [CareGroupController::class, 'store']);
@@ -59,6 +63,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Restful endpoints for tasks
     Route::apiResource('tasks', TaskController::class);
 
+    // Custom endpoints for tasks
+    Route::get('/tasks/by-group/{care_group_id}', [TaskController::class, 'indexByGroup']);
+    Route::get('/tasks/upcoming-by-group/{care_group_id}', [TaskController::class, 'upcomingByGroup']);
+
     // Ruta para generar invitación (Solo Admin)
     Route::post('/care-groups/{id}/invitation', [CareGroupController::class, 'generateInvitation']);
 
@@ -67,9 +75,4 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Ruta para unirse al grupo (Cualquier usuario)
     Route::post('/join-group', [CareGroupController::class, 'joinByCode']);
-    
-    // Custom endpoints for tasks
-    Route::get('/tasks/by-group/{care_group_id}', [TaskController::class, 'indexByGroup']);
-    Route::get('/tasks/upcoming-by-group/{care_group_id}', [TaskController::class, 'upcomingByGroup']);
-
 });
