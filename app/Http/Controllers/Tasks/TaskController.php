@@ -7,13 +7,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Task;
 use App\Models\CareGroup;
+use App\Models\TaskAssignment;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class TaskController extends Controller{
   // RESTFUL STYLE ENDPOINTS
-
-  // EDIT TO INCLUDE MORE INFORMATION ABOUT A SPECIFIC TASK (!!!!!)
   public function show(string $id){
     $task = Task::with(['assignedUsers:user_id,names,surnames,email'])->find($id);
 
@@ -24,36 +24,97 @@ class TaskController extends Controller{
     return response()->json($task);
   }
 
-  // Create a single task
-  public function store(Request $request){
+  // Create one or multiple tasks based on the frequency
+  public function store(Request $request)
+  {
     $validated = $request->validate([
       'care_group_id' => 'required|exists:care_groups,care_group_id',
       'title' => 'required|string|max:255',
       'description' => 'nullable|string',
-      'frequency' => 'required|string',
+      'frequency' => 'required|integer|between:0,3',
       'category' => 'nullable|string',
+
+      // begin_time = startDate + startTime
       'begin_time' => 'required|date',
-      'end_time' => 'nullable|date|after_or_equal:begin_time'
-    ], [
-      'required' => 'El campo :attribute es obligatorio.',
+
+      // end_time = startDate + endTime (time only)
+      'end_time' => 'required|date|after_or_equal:begin_time',
+
+      // loop_end_date = only date, no time required
+      'loop_end_date' => 'nullable|date|after_or_equal:begin_time',
+
+      'assigned_to' => 'nullable|exists:users,user_id',
     ]);
 
-    $task = Task::create([
-      'care_group_id' => $validated['care_group_id'],
-      'title' => $validated['title'],
-      'description' => $validated['description'] ?? null,
-      'frequency' => $validated['frequency'],
-      'category' => $validated['category'] ?? null,
-      'begin_time' => $validated['begin_time'],
-      'end_time' => $validated['end_time'] ?? null,
-      'done' => false,
-    ]);
+    // Extract original timestamps
+    $start = Carbon::parse($validated['begin_time']);
+    $loopEnd = isset($validated['loop_end_date'])
+      ? Carbon::parse($validated['loop_end_date'])
+      : $start->copy();
+
+    $frequency = intval($validated['frequency']);
+
+    // Extract the hours/minutes from the original times
+    $startHour = $start->hour;
+    $startMinute = $start->minute;
+
+    $end = Carbon::parse($validated['end_time']);
+    $endHour = $end->hour;
+    $endMinute = $end->minute;
+
+    $tasksCreated = [];
+
+    // Frequency increments
+    $intervals = [
+      0 => null,
+      1 => '1 day',
+      2 => '1 week',
+      3 => '1 month',
+    ];
+
+    // Set current day pointer for loop
+    $current = $start->copy()->startOfDay();
+
+    while ($current->lte($loopEnd)) {
+      // Build begin_time for this iteration (date = current, time from original)
+      $beginForDay = $current->copy()->setTime($startHour, $startMinute);
+
+      // Build end_time for this iteration (same date but end HH:mm)
+      $endForDay = $current->copy()->setTime($endHour, $endMinute);
+
+      // Create the task
+      $task = Task::create([
+          'care_group_id' => $validated['care_group_id'],
+          'title' => $validated['title'],
+          'description' => $validated['description'] ?? null,
+          'frequency' => $frequency,
+          'category' => $validated['category'] ?? null,
+          'begin_time' => $beginForDay,
+          'end_time' => $endForDay,
+          'done' => false,
+      ]);
+
+      if (!empty($validated['assigned_to'])) {
+          TaskAssignment::create([
+              'task_id' => $task->task_id,
+              'user_id' => $validated['assigned_to']
+          ]);
+      }
+
+      $tasksCreated[] = $task;
+
+      if ($frequency === 0) break; // only once
+
+      $current->add($intervals[$frequency]);
+    }
 
     return response()->json([
-      'task' => $task,
-      'message' => "Tarea creada con éxito"
+        'tasks' => $tasksCreated,
+        'count' => count($tasksCreated),
+        'message' => "Tareas creadas con éxito"
     ], 201);
   }
+
 
   // Delete single task
   public function destroy(string $id){

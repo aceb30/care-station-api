@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\TaskAssignment;
 
 class Task extends Model
 {
@@ -63,9 +64,9 @@ class Task extends Model
     {
         return $this->belongsToMany(
             User::class,
-            'task_assignments', // The pivot table
-            'task_id',          // The foreign key for this model
-            'user_id'           // The foreign key for the User model
-        );
+            'task_assignments',
+            'task_id',
+            'user_id'
+        )->using(TaskAssignment::class);
     }
 }
