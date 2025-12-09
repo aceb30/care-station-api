@@ -44,6 +44,7 @@ services:
     ports:
       # ONLY expose the web console (9001) for admin
       - "9001:9001"
+      - "9000:9000"
     volumes:
       - minio_data:/data
       - ./minio-init:/minio-init
@@ -61,7 +62,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: adminpassword
     ports:
       # Expose pgAdmin's web console
-      - "8082:80"
+      - "8081:80"
     depends_on:
       - db
     networks:
