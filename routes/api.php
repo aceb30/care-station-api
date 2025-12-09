@@ -8,6 +8,7 @@ use App\Http\Controllers\Medicine\ExamController;
 use App\Http\Controllers\Tasks\UserController;
 use App\Http\Controllers\Tasks\TaskController;
 use App\Http\Controllers\CareGroupController;
+use App\Http\Controllers\PatientController;
 
 use App\Http\Controllers\Medicine\MedicationController;
 
@@ -40,12 +41,17 @@ Route::middleware('auth:sanctum')->group(function () {
     // Editar foto de perfil (solo usuario autenticado puede editar su propia foto)
     //Route::patch('/user/{user}/photo', [UserController::class, 'updatePhoto'])->name('user.updatePhoto');
 
-    Route::apiResource('patients', \App\Http\Controllers\Tasks\PatientController::class);
+    Route::apiResource('patients', PatientController::class);
 
+    // Custom endpoints for patients
+    Route::get('/patients/by-group/{care_group_id}', [PatientController::class, 'showByGroup']);
 
+    
     Route::get('/my-groups', [CareGroupController::class, 'getMyGroups']);
 
     Route::post('/care-groups', [CareGroupController::class, 'store']);
+
+    Route::get('/care-groups/get-members/{care_group_id}', [CareGroupController::class, 'getMembers']);
 
     // '/exams' y lo que le sigue. Si la vista es otra, cambiar el nombre.
     Route::apiResource('exams', ExamController::class);
@@ -54,12 +60,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('medications', MedicationController::class);
 
     // '/prescriptions' y lo que le sigue. Si la vista es otra, cambiar el nombre.
-    Route::apiResource('prescriptions', MedicationController::class);
-});
+    Route::apiResource('prescriptions', PrescriptionController::class);
 
-// MOVER DENTRO DEL MIDDLEWARE DESPUÉS
-Route::post('/readTasks', [TaskController::class, 'readTasks'])->name('readTasks');
-Route::post('/readUpcomingTasks', [TaskController::class, 'readUpcomingTasks'])->name('readUpcomingTasks');
-Route::post('/createTask', [TaskController::class, 'createTask'])->name('createTask');
-Route::post('/deleteTask', [TaskController::class, 'deleteTask'])->name('deleteTask');
-Route::post('/updateTask', [TaskController::class, 'updateTask'])->name('updateTask');
+    // Restful endpoints for tasks
+    Route::apiResource('tasks', TaskController::class);
+
+    // Custom endpoints for tasks
+    Route::get('/tasks/by-group/{care_group_id}', [TaskController::class, 'indexByGroup']);
+    Route::get('/tasks/upcoming-by-group/{care_group_id}', [TaskController::class, 'upcomingByGroup']);
+
+    // Ruta para generar invitación (Solo Admin)
+    Route::post('/care-groups/{id}/invitation', [CareGroupController::class, 'generateInvitation']);
+
+    // Ruta para unirse por código
+    Route::post('/care-groups/join-by-code', [CareGroupController::class, 'joinByCode']);
+    
+    // Ruta para unirse al grupo (Cualquier usuario)
+    Route::post('/join-group', [CareGroupController::class, 'joinByCode']);
+});

@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Tasks;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Patient;
+use App\Models\CareGroup;
 use Illuminate\Support\Facades\Log;
 
 
@@ -67,5 +68,21 @@ class PatientController extends Controller
     {
         $patient->delete();
         return response()->json(null, 204);
+    }
+
+    public function showByGroup(string $care_group_id){
+        $care_group = CareGroup::find($care_group_id);
+
+        if(!$care_group){
+            return response()->json(['message' => 'No se encontró el grupo de cuidados indicado'], 404);
+        }
+
+        $patient = Patient::where('care_group_id', $care_group_id)->first();
+
+        if(!$patient){
+            return response()->json(['message' => 'Paciente no encontrado'], 404);
+        }
+
+        return response()->json($patient);
     }
 }

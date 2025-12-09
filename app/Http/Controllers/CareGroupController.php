@@ -7,6 +7,11 @@ use App\Models\CareGroup;
 use App\Models\Patient;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\GroupInvitation;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use App\Models\GroupMember;
 
 
 class CareGroupController extends Controller
@@ -85,5 +90,115 @@ class CareGroupController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function generateInvitation(Request $request, $id)
+    {
+        $careGroup = CareGroup::find($id);
+
+        if (!$careGroup) {
+            return response()->json(['message' => 'Grupo no encontrado'], 404);
+        }
+
+        // Validar que el usuario actual sea el admin del grupo
+        // Nota: Asegúrate que tu tabla care_groups tenga la columna 'admin_id'
+        if ($careGroup->admin_id !== Auth::id()) {
+            return response()->json(['message' => 'No autorizado. Solo el administrador puede crear invitaciones.'], 403);
+        }
+
+        // Buscar si ya existe un código vigente para no llenar la BD
+        $existingInvite = GroupInvitation::where('care_group_id', $id)
+            ->where('expires_at', '>', Carbon::now())
+            ->first();
+
+        if ($existingInvite) {
+            return response()->json([
+                'message' => 'Código existente recuperado',
+                'code' => $existingInvite->code,
+                'expires_at' => $existingInvite->expires_at
+            ]);
+        }
+
+        // Generar un código único aleatorio (6 caracteres mayúsculas/números)
+        $code = strtoupper(Str::random(6));
+
+        // Asegurarse de que no exista ya (loop simple de seguridad)
+        while (GroupInvitation::where('code', $code)->exists()) {
+            $code = strtoupper(Str::random(6));
+        }
+
+        // Crear la invitación (válida por 48 horas)
+        $invitation = GroupInvitation::create([
+            'care_group_id' => $id,
+            'code' => $code,
+            'expires_at' => Carbon::now()->addHours(48),
+        ]);
+
+        return response()->json([
+            'message' => 'Código generado exitosamente',
+            'code' => $invitation->code,
+            'expires_at' => $invitation->expires_at
+        ]);
+    }
+
+    public function joinByCode(Request $request)
+    {
+        // Validar el input
+        $request->validate([
+            'code' => 'required|string'
+        ]);
+
+        $code = strtoupper($request->input('code'));
+
+        // Buscar la invitación
+        $invitation = GroupInvitation::where('code', $code)->first();
+
+        if (!$invitation) {
+            return response()->json(['message' => 'Código inválido.'], 404);
+        }
+
+        // Verificar si ha expirado
+        if (Carbon::now()->greaterThan($invitation->expires_at)) {
+            return response()->json(['message' => 'El código de invitación ha expirado.'], 400);
+        }
+
+        $user = Auth::user();
+        $groupId = $invitation->care_group_id;
+
+        // Verificar si el usuario ya es miembro de ese grupo
+        $isMember = GroupMember::where('user_id', $user->user_id)
+                            ->where('care_group_id', $groupId)
+                            ->exists();
+
+        if ($isMember) {
+            return response()->json(['message' => 'Ya eres miembro de este grupo.'], 409);
+        }
+
+        // Agregar al usuario al grupo
+        GroupMember::create([
+            'user_id' => $user->user_id,
+            'care_group_id' => $groupId
+        ]);
+
+        return response()->json([
+            'message' => 'Te has unido al grupo de cuidado exitosamente.',
+            'care_group_id' => $groupId
+        ]);
+    }
+
+    public function getMembers(string $care_group_id){
+        $care_group = CareGroup::find($care_group_id);
+
+        if(!$care_group){
+        return response()->json(['message' => 'No se encontró el grupo de cuidados indicado'], 404);
+        }
+
+        $members = GroupMember::where('care_group_id', $care_group_id)
+                                ->with(['user:user_id,names,surnames'])
+                                ->get();
+
+        return response()->json(
+            $members->map(fn ($m) => $m->user)
+        );
     }
 }
