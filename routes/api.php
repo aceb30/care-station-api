@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tasks/by-group/{care_group_id}', [TaskController::class, 'indexByGroup']);
     Route::get('/tasks/upcoming-by-group/{care_group_id}', [TaskController::class, 'upcomingByGroup']);
 
+    Route::post('/care-groups/{id}', [CareGroupController::class, 'update']);
     // Ruta para generar invitación (Solo Admin)
     Route::post('/care-groups/{id}/invitation', [CareGroupController::class, 'generateInvitation']);
 

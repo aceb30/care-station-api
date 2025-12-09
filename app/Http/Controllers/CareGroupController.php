@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Models\GroupMember;
+use Illuminate\Support\Facades\Storage;
 
 
 class CareGroupController extends Controller
@@ -89,6 +90,60 @@ class CareGroupController extends Controller
                 'message' => 'Error al crear el grupo',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function update(Request $request, $id) {
+        $group = CareGroup::find($id);
+
+        if (!$group) {
+            return response()->json(['message' => 'Grupo no Encontrado'], 404);
+        }
+
+        if ($group->admin_id !== Auth::id()) {
+            return response()->json(['message' => 'No autorizado para editar este grupo'], 403);
+        }
+
+        // 2. Validación
+        $data = $request->validate([
+            // El frontend envía 'patient_names', que mapearemos al nombre del grupo
+            'patient_names' => 'required|string|max:100', 
+            'photo'         => 'nullable|file|mimes:jpeg,png,jpg,heic|max:20480', 
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // 3. Actualizar Nombre
+            $group->name = $data['patient_names'];
+
+            // 4. Manejo de la Imagen
+            if ($request->hasFile('photo')) {
+                // a) Si ya tenía foto (y no es una url externa genérica), borrar la anterior para no llenar el disco
+                if ($group->photo_url && str_contains($group->photo_url, '/storage/')) {
+                    // Extraemos el path relativo de la URL
+                    $oldPath = str_replace(asset('storage/'), '', $group->photo_url);
+                    Storage::disk('public')->delete($oldPath);
+                }
+
+                // b) Guardar nueva foto en la carpeta 'care_groups' dentro del disco 'public'
+                $path = $request->file('photo')->store('care_groups', 'public');
+                
+                // c) Generar URL completa
+                $group->photo_url = asset('storage/' . $path);
+            }
+
+            $group->save();
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Grupo actualizado correctamente',
+                'group' => $group
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error actualizando grupo: ' . $e->getMessage());
+            return response()->json(['message' => 'Error interno al actualizar'], 500);
         }
     }
 
