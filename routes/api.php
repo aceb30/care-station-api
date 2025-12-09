@@ -43,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('patients', PatientController::class);
 
+    Route::get('/patients', [PatientController::class, 'index']);
+
     // Custom endpoints for patients
     Route::get('/patients/by-group/{care_group_id}', [PatientController::class, 'showByGroup']);
 
@@ -78,4 +80,11 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Ruta para unirse al grupo (Cualquier usuario)
     Route::post('/join-group', [CareGroupController::class, 'joinByCode']);
+
+    Route::get('/medications', [MedicationController::class, 'index']); 
+    Route::post('/medications', [MedicationController::class, 'store']);
+    Route::get('/medications/{id}', [MedicationController::class, 'show']);
+    Route::put('/medications/{id}', [MedicationController::class, 'update']);
+    Route::delete('/medications/{id}', [MedicationController::class, 'destroy']);
+
 });
