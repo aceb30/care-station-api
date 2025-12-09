@@ -61,7 +61,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: adminpassword
     ports:
       # Expose pgAdmin's web console
-      - "8081:80"
+      - "8082:80"
     depends_on:
       - db
     networks:
