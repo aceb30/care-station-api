@@ -58,21 +58,21 @@ class MedicationController extends Controller {
 
         if(!$medication){
             return response()->json(['message' => 'Medicamento no encontrado'], 404);
-
-            $validatedData = $request->validate([
-                'patient_id' => 'required|integer|exists:patients,patient_id',
-                'name' => 'required|string|max:255',
-                'description' => 'nullable|string',
-            ]);
-
-            $medication->update($validatedData);
-
-            return response()->json([
-                'message' => 'Medicamento actualizado',
-                'medication' => $medication->fresh()->with('patient')->first()
-            ]);
         }
+
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $medication->update($validatedData);
+
+        return response()->json([
+            'message' => 'Medicamento actualizado',
+            'medication' => $medication->fresh()->with('patient')->first()
+        ]);
     }
+    
 
     // Eliminar
     public function destroy(string $id){
