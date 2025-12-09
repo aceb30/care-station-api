@@ -27,7 +27,7 @@ class TaskController extends Controller{
   // Create a single task
   public function store(Request $request){
     $validated = $request->validate([
-      'care_group_id' => 'required|exists:care_groups,id',
+      'care_group_id' => 'required|exists:care_groups,care_group_id',
       'title' => 'required|string|max:255',
       'description' => 'nullable|string',
       'frequency' => 'required|string',
