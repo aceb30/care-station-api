@@ -25,15 +25,18 @@ class TaskController extends Controller{
   }
 
   // Create a single task
+ // Create a single task
   public function store(Request $request){
     $validated = $request->validate([
-      'care_group_id' => 'required|exists:care_groups,id',
+      'care_group_id' => 'required|exists:care_groups,care_group_id',
       'title' => 'required|string|max:255',
       'description' => 'nullable|string',
       'frequency' => 'required|string',
       'category' => 'nullable|string',
       'begin_time' => 'required|date',
-      'end_time' => 'nullable|date|after_or_equal:begin_time'
+      'end_time' => 'nullable|date|after_or_equal:begin_time',
+      // 1. Validate the user exists
+      'assigned_to' => 'nullable|exists:users,user_id', 
     ], [
       'required' => 'El campo :attribute es obligatorio.',
     ]);
@@ -48,6 +51,11 @@ class TaskController extends Controller{
       'end_time' => $validated['end_time'] ?? null,
       'done' => false,
     ]);
+
+    // 2. THE FIX: Manually save the relationship
+    if (!empty($validated['assigned_to'])) {
+        $task->assignedUsers()->attach($validated['assigned_to']);
+    }
 
     return response()->json([
       'task' => $task,
@@ -83,23 +91,31 @@ class TaskController extends Controller{
       'category' => 'sometimes|nullable|string',
       'begin_time' => 'sometimes|nullable|date',
       'end_time' => 'sometimes|nullable|date|after_or_equal:begin_time',
-      'done' => 'sometimes|boolean'
-    ], [
-      'required' => 'El campo :attribute es obligatorio.', 
-      'integer' => 'El campo :attribute debe ser un número entero.',
-      'string' => 'El campo :attribute debe ser texto válido.',
-      'date' => 'El campo :attribute debe ser una fecha válida.',
-      'after_or_equal' => 'La fecha de término debe ser posterior o igual a la fecha de inicio.',
-      'boolean' => 'El campo :attribute debe ser verdadero o falso.'
+      'done' => 'sometimes|boolean',
+      // 1. Validate the user
+      'assigned_to' => 'sometimes|nullable|exists:users,user_id',
     ]);
 
-    $task->update(collect($validated)->except('task_id')->toArray());
+    // Update the basic fields
+    $task->update(collect($validated)->except(['task_id', 'assigned_to'])->toArray());
+
+    // 2. THE FIX: Update the relationship
+    if (array_key_exists('assigned_to', $validated)) {
+        if ($validated['assigned_to']) {
+            // If ID sent, replace assignments with this user
+            $task->assignedUsers()->sync([$validated['assigned_to']]); 
+        } else {
+            // If null sent, remove all assignments
+            $task->assignedUsers()->detach();
+        }
+    }
 
     return response()->json([
       'message' => "Tarea actualizada correctamente",
-      'task' => $task
+      'task' => $task->load('assignedUsers') // Reload so response shows the new user
     ], 202);
   }
+  
 
   // CUSTOM ENDPOINTS
 
