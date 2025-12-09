@@ -51,6 +51,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/care-groups', [CareGroupController::class, 'store']);
 
+    Route::get('/care-groups/get-members/{care_group_id}', [CareGroupController::class, 'getMembers']);
+
     // '/exams' y lo que le sigue. Si la vista es otra, cambiar el nombre.
     Route::apiResource('exams', ExamController::class);
 

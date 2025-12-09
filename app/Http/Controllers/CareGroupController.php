@@ -185,4 +185,20 @@ class CareGroupController extends Controller
             'care_group_id' => $groupId
         ]);
     }
+
+    public function getMembers(string $care_group_id){
+        $care_group = CareGroup::find($care_group_id);
+
+        if(!$care_group){
+        return response()->json(['message' => 'No se encontró el grupo de cuidados indicado'], 404);
+        }
+
+        $members = GroupMember::where('care_group_id', $care_group_id)
+                                ->with(['user:user_id,names,surnames'])
+                                ->get();
+
+        return response()->json(
+            $members->map(fn ($m) => $m->user)
+        );
+    }
 }
